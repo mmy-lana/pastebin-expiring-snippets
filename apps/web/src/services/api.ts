@@ -5,7 +5,7 @@ import {
 	SnippetResponse
 } from "@pastebin/shared";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5001";
 
 class ApiError extends Error {
 	constructor(
@@ -31,8 +31,24 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 	if (!response.ok || !json.success) {
 		const errorObj = "error" in json ? json.error : { code: "HTTP_ERROR", message: response.statusText };
+		let formattedMessage = errorObj.message || "Failed to process API request";
+
+		if ("error" in json && Array.isArray(json.error.details) && json.error.details.length > 0) {
+			formattedMessage = json.error.details
+				.map((issue: unknown) => {
+					if (typeof issue === "object" && issue !== null) {
+						const rec = issue as Record<string, unknown>;
+						const path = Array.isArray(rec.path) ? rec.path.join(".") : "";
+						const msg = typeof rec.message === "string" ? rec.message : JSON.stringify(rec);
+						return path ? `[${path}]: ${msg}` : msg;
+					}
+					return String(issue);
+				})
+				.join(" | ");
+		}
+
 		throw new ApiError(
-			errorObj.message || "Failed to process API request",
+			formattedMessage,
 			errorObj.code || "REQUEST_FAILED",
 			response.status,
 			"error" in json ? json.error.details : undefined

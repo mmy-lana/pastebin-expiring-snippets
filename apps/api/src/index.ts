@@ -11,16 +11,18 @@ import { errorHandler, AppError } from "./middleware/error.middleware.js";
 dotenv.config();
 
 const app = express();
-const port = Number(process.env.PORT) || 5000;
+const port = Number(process.env.PORT) || 5001;
 
 app.use(
 	helmet({
-		contentSecurityPolicy: false
+		contentSecurityPolicy: false,
+		crossOriginResourcePolicy: { policy: "cross-origin" }
 	})
 );
 app.use(
 	cors({
-		origin: process.env.CORS_ORIGIN || "*",
+		origin: true,
+		credentials: true,
 		methods: ["GET", "POST", "DELETE", "OPTIONS"],
 		allowedHeaders: ["Content-Type", "Authorization", "x-snippet-password"]
 	})

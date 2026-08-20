@@ -14,7 +14,7 @@ export declare const SNIPPET_LIMITS: {
     readonly TITLE_MAX_LENGTH: 100;
     readonly CONTENT_MIN_LENGTH: 1;
     readonly CONTENT_MAX_LENGTH: 500000;
-    readonly PASSWORD_MIN_LENGTH: 4;
+    readonly PASSWORD_MIN_LENGTH: 1;
     readonly PASSWORD_MAX_LENGTH: 64;
     readonly MAX_VIEWS_LIMIT: 10000;
     readonly ID_LENGTH: 10;
