@@ -1,0 +1,40 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: pastebin-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: pastebin-api
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - NODE_ENV=development
+      - CORS_ORIGIN=http://localhost:3000
+      - UPSTASH_REDIS_REST_URL=http://redis:6379
+      - UPSTASH_REDIS_REST_TOKEN=example_token
+    depends_on:
+      - redis
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: pastebin-web
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+
+volumes:
+  redis_data:
