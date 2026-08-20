@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ExpirationOptions, SNIPPET_LIMITS, SUPPORTED_LANGUAGES } from "./constants";
+import { ExpirationOptions, SNIPPET_LIMITS, SUPPORTED_LANGUAGES } from "./constants.js";
 
 export const SupportedLanguageSchema = z.enum(SUPPORTED_LANGUAGES, {
 	error: () => ({ message: "Unsupported programming language specified" })

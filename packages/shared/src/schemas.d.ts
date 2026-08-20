@@ -1,0 +1,86 @@
+import { z } from "zod";
+export declare const SupportedLanguageSchema: z.ZodEnum<{
+    bash: "bash";
+    c: "c";
+    cpp: "cpp";
+    csharp: "csharp";
+    css: "css";
+    dockerfile: "dockerfile";
+    go: "go";
+    html: "html";
+    java: "java";
+    javascript: "javascript";
+    json: "json";
+    markdown: "markdown";
+    plaintext: "plaintext";
+    python: "python";
+    rust: "rust";
+    sql: "sql";
+    typescript: "typescript";
+    yaml: "yaml";
+}>;
+export declare const ExpirationTtlSchema: z.ZodDefault<z.ZodUnion<readonly [z.ZodLiteral<0>, z.ZodLiteral<300>, z.ZodLiteral<600>, z.ZodLiteral<3600>, z.ZodLiteral<86400>, z.ZodLiteral<604800>, z.ZodLiteral<2592000>, z.ZodNumber]>>;
+export declare const CreateSnippetSchema: z.ZodObject<{
+    title: z.ZodDefault<z.ZodString>;
+    code: z.ZodString;
+    language: z.ZodDefault<z.ZodEnum<{
+        bash: "bash";
+        c: "c";
+        cpp: "cpp";
+        csharp: "csharp";
+        css: "css";
+        dockerfile: "dockerfile";
+        go: "go";
+        html: "html";
+        java: "java";
+        javascript: "javascript";
+        json: "json";
+        markdown: "markdown";
+        plaintext: "plaintext";
+        python: "python";
+        rust: "rust";
+        sql: "sql";
+        typescript: "typescript";
+        yaml: "yaml";
+    }>>;
+    ttlSeconds: z.ZodDefault<z.ZodUnion<readonly [z.ZodLiteral<0>, z.ZodLiteral<300>, z.ZodLiteral<600>, z.ZodLiteral<3600>, z.ZodLiteral<86400>, z.ZodLiteral<604800>, z.ZodLiteral<2592000>, z.ZodNumber]>>;
+    password: z.ZodOptional<z.ZodString>;
+    maxViews: z.ZodOptional<z.ZodNumber>;
+}, z.core.$strip>;
+export declare const FetchSnippetParamsSchema: z.ZodObject<{
+    id: z.ZodString;
+}, z.core.$strip>;
+export declare const UnlockSnippetSchema: z.ZodObject<{
+    password: z.ZodString;
+}, z.core.$strip>;
+export declare const SnippetResponseSchema: z.ZodObject<{
+    id: z.ZodString;
+    title: z.ZodString;
+    code: z.ZodNullable<z.ZodString>;
+    language: z.ZodEnum<{
+        bash: "bash";
+        c: "c";
+        cpp: "cpp";
+        csharp: "csharp";
+        css: "css";
+        dockerfile: "dockerfile";
+        go: "go";
+        html: "html";
+        java: "java";
+        javascript: "javascript";
+        json: "json";
+        markdown: "markdown";
+        plaintext: "plaintext";
+        python: "python";
+        rust: "rust";
+        sql: "sql";
+        typescript: "typescript";
+        yaml: "yaml";
+    }>;
+    createdAt: z.ZodNumber;
+    expiresAt: z.ZodNullable<z.ZodNumber>;
+    burnAfterRead: z.ZodBoolean;
+    isProtected: z.ZodBoolean;
+    remainingViews: z.ZodNullable<z.ZodNumber>;
+    viewsCount: z.ZodNumber;
+}, z.core.$strip>;

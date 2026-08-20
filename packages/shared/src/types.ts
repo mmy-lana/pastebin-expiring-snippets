@@ -4,8 +4,8 @@ import {
 	FetchSnippetParamsSchema,
 	SnippetResponseSchema,
 	UnlockSnippetSchema
-} from "./schemas";
-import { SupportedLanguage } from "./constants";
+} from "./schemas.js";
+import { SupportedLanguage } from "./constants.js";
 
 export type CreateSnippetInput = z.infer<typeof CreateSnippetSchema>;
 export type FetchSnippetParams = z.infer<typeof FetchSnippetParamsSchema>;
