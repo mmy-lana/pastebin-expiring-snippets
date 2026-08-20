@@ -1,175 +1,254 @@
-import React, { useState } from "react";
-import { ExpirationOptions, type SnippetResponse } from "@pastebin/shared";
-import { Clock, Flame, Send, Copy, Check } from "lucide-react";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+import React, { useEffect, useState } from "react";
+import { useSnippet } from "./hooks/useSnippet";
+import { useClipboard } from "./hooks/useClipboard";
+import { TerminalCard } from "./components/ui/TerminalCard";
+import { TerminalAlert } from "./components/ui/TerminalAlert";
+import { TerminalButton } from "./components/ui/TerminalButton";
+import { TerminalBadge } from "./components/ui/TerminalBadge";
+import { SnippetEditor } from "./components/SnippetEditor";
+import { SnippetViewer } from "./components/SnippetViewer";
+import { SnippetLookup } from "./components/SnippetLookup";
+import { api } from "./services/api";
+import {
+	Terminal,
+	ShieldCheck,
+	Activity,
+	Copy,
+	Check,
+	ExternalLink,
+	Plus,
+	Search
+} from "lucide-react";
 
 export default function App() {
-	const [title, setTitle] = useState("");
-	const [code, setCode] = useState("");
-	const [language, setLanguage] = useState("typescript");
-	const [ttl, setTtl] = useState<number>(ExpirationOptions.TWENTY_FOUR_HOURS);
-	const [createdId, setCreatedId] = useState<string | null>(null);
-	const [lookupId, setLookupId] = useState("");
-	const [snippet, setSnippet] = useState<SnippetResponse | null>(null);
-	const [error, setError] = useState<string | null>(null);
-	const [copied, setCopied] = useState(false);
+	const {
+		isLoading,
+		error,
+		snippet,
+		createdResult,
+		clearError,
+		createSnippet,
+		fetchSnippet,
+		unlockSnippet,
+		deleteSnippet,
+		resetCreatedResult
+	} = useSnippet();
 
-	const handleSubmit = async (e: React.FormEvent) => {
-		e.preventDefault();
-		setError(null);
-		try {
-			const res = await fetch(`${API_URL}/api/snippets`, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ title, code, language, ttlSeconds: ttl })
-			});
-			const data = await res.json();
-			if (!res.ok) throw new Error(data.message || "Failed to create snippet");
-			setCreatedId(data.id);
-			setCode("");
-			setTitle("");
-		} catch (err: any) {
-			setError(err.message);
-		}
-	};
+	const { copied, copy } = useClipboard();
+	const [activeTab, setActiveTab] = useState<"create" | "lookup">("create");
+	const [systemHealth, setSystemHealth] = useState<{ status: string; redis: string } | null>(null);
 
-	const handleFetch = async (id: string) => {
-		setError(null);
-		setSnippet(null);
-		try {
-			const res = await fetch(`${API_URL}/api/snippets/${id}`);
-			const data = await res.json();
-			if (!res.ok) throw new Error(data.message || "Snippet not found or expired");
-			setSnippet(data);
-		} catch (err: any) {
-			setError(err.message);
+	// Load snippet ID directly from URL hash if provided (#demo-ts01)
+	useEffect(() => {
+		const hash = window.location.hash.replace("#", "").trim();
+		if (hash) {
+			fetchSnippet(hash).catch(() => { });
+			setActiveTab("lookup");
 		}
+
+		api.checkHealth()
+			.then(setSystemHealth)
+			.catch(() => setSystemHealth({ status: "offline", redis: "error" }));
+	}, [fetchSnippet]);
+
+	const handleShareLink = (id: string) => {
+		const shareUrl = `${window.location.origin}/#${id}`;
+		copy(shareUrl);
 	};
 
 	return (
-		<div className="max-w-4xl mx-auto p-6 space-y-8">
-			<header className="border-b border-neutral-800 pb-4">
-				<h1 className="text-3xl font-bold text-emerald-400">⚡ Expiring Pastebin</h1>
-				<p className="text-neutral-400 text-sm mt-1">Share code snippets that automatically self-destruct.</p>
-			</header>
-
-			{error && <div className="p-3 bg-red-950/50 border border-red-800 text-red-300 rounded text-sm">{error}</div>}
-
-			<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-				{/* Create Snippet Form */}
-				<form onSubmit={handleSubmit} className="space-y-4 bg-neutral-900/60 p-5 border border-neutral-800 rounded-xl">
-					<h2 className="text-lg font-semibold flex items-center gap-2">
-						<Send className="w-4 h-4 text-emerald-400" /> Create Snippet
-					</h2>
-
-					<input
-						type="text"
-						placeholder="Title (optional)"
-						value={title}
-						onChange={(e) => setTitle(e.target.value)}
-						className="w-full bg-neutral-950 border border-neutral-800 rounded p-2 text-sm focus:border-emerald-500 outline-none"
-					/>
-
-					<select
-						value={language}
-						onChange={(e) => setLanguage(e.target.value)}
-						className="w-full bg-neutral-950 border border-neutral-800 rounded p-2 text-sm outline-none"
-					>
-						<option value="typescript">TypeScript</option>
-						<option value="javascript">JavaScript</option>
-						<option value="python">Python</option>
-						<option value="json">JSON</option>
-						<option value="plaintext">Plaintext</option>
-					</select>
-
-					<select
-						value={ttl}
-						onChange={(e) => setTtl(Number(e.target.value))}
-						className="w-full bg-neutral-950 border border-neutral-800 rounded p-2 text-sm outline-none"
-					>
-						<option value={ExpirationOptions.BURN_AFTER_READ}>🔥 Burn After Reading</option>
-						<option value={ExpirationOptions.TEN_MINUTES}>⏳ 10 Minutes</option>
-						<option value={ExpirationOptions.ONE_HOUR}>⏳ 1 Hour</option>
-						<option value={ExpirationOptions.TWENTY_FOUR_HOURS}>⏳ 24 Hours</option>
-						<option value={ExpirationOptions.SEVEN_DAYS}>⏳ 7 Days</option>
-					</select>
-
-					<textarea
-						required
-						placeholder="Paste your code here..."
-						value={code}
-						onChange={(e) => setCode(e.target.value)}
-						className="w-full h-48 bg-neutral-950 border border-neutral-800 rounded p-3 text-sm font-mono focus:border-emerald-500 outline-none resize-none"
-					/>
-
-					<button
-						type="submit"
-						className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2 rounded-lg transition"
-					>
-						Create Secret Snippet
-					</button>
-				</form>
-
-				{/* View / Lookup Snippet */}
-				<div className="space-y-4">
-					{createdId && (
-						<div className="p-4 bg-emerald-950/30 border border-emerald-800 rounded-xl space-y-2">
-							<span className="text-xs text-emerald-400 font-semibold uppercase">Snippet Created!</span>
-							<div className="flex items-center justify-between bg-neutral-950 p-2 rounded border border-neutral-800">
-								<code className="text-sm">{createdId}</code>
-								<button
-									onClick={() => {
-										navigator.clipboard.writeText(createdId);
-										setCopied(true);
-										setTimeout(() => setCopied(false), 2000);
-									}}
-									className="text-neutral-400 hover:text-white"
-								>
-									{copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-								</button>
-							</div>
+		<div className="min-h-screen bg-black text-neutral-200 font-mono flex flex-col selection:bg-emerald-500/30 selection:text-emerald-300">
+			{/* Top Terminal System Header */}
+			<header className="border-b border-neutral-800/90 bg-neutral-950/80 backdrop-blur sticky top-0 z-40">
+				<div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+					<div className="flex items-center gap-3">
+						<div className="p-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded text-emerald-400">
+							<Terminal className="w-5 h-5" />
 						</div>
-					)}
+						<div>
+							<h1 className="text-sm font-bold tracking-widest uppercase text-emerald-400 flex items-center gap-2">
+								<span>EXPIRING_PASTEBIN</span>
+								<span className="text-[10px] px-1.5 py-0.2 bg-emerald-950 text-emerald-400 border border-emerald-800 rounded">
+									v1.0.0
+								</span>
+							</h1>
+							<p className="text-[11px] text-neutral-500">
+								Encrypted, self-destructing memory buffers powered by Upstash Redis
+							</p>
+						</div>
+					</div>
 
-					<div className="bg-neutral-900/60 p-5 border border-neutral-800 rounded-xl space-y-4">
-						<h2 className="text-lg font-semibold flex items-center gap-2">
-							<Clock className="w-4 h-4 text-cyan-400" /> Retrieve Snippet
-						</h2>
-						<div className="flex gap-2">
-							<input
-								type="text"
-								placeholder="Enter Snippet ID"
-								value={lookupId}
-								onChange={(e) => setLookupId(e.target.value)}
-								className="flex-1 bg-neutral-950 border border-neutral-800 rounded p-2 text-sm outline-none"
-							/>
-							<button
-								onClick={() => handleFetch(lookupId)}
-								className="bg-neutral-800 hover:bg-neutral-700 px-4 py-2 rounded text-sm font-medium"
+					<div className="flex items-center gap-3">
+						{systemHealth && (
+							<TerminalBadge
+								variant={systemHealth.redis === "connected" ? "emerald" : "red"}
+								icon={<Activity className="w-3 h-3" />}
 							>
-								Fetch
-							</button>
-						</div>
-
-						{snippet && (
-							<div className="mt-4 space-y-2 border-t border-neutral-800 pt-4">
-								<div className="flex items-center justify-between">
-									<h3 className="font-semibold text-neutral-200">{snippet.title}</h3>
-									{snippet.burnAfterRead && (
-										<span className="text-xs bg-red-950 text-red-400 border border-red-800 px-2 py-0.5 rounded flex items-center gap-1">
-											<Flame className="w-3 h-3" /> Destroyed
-										</span>
-									)}
-								</div>
-								<pre className="bg-neutral-950 p-4 rounded-lg overflow-x-auto text-sm font-mono border border-neutral-800">
-									<code>{snippet.code}</code>
-								</pre>
-							</div>
+								{systemHealth.redis === "connected" ? "REDIS_ACTIVE" : "REDIS_ERR"}
+							</TerminalBadge>
 						)}
+
+						<div className="hidden sm:flex gap-1.5">
+							<TerminalButton
+								variant={activeTab === "create" ? "primary" : "ghost"}
+								size="sm"
+								onClick={() => setActiveTab("create")}
+								icon={<Plus className="w-3.5 h-3.5" />}
+							>
+								NEW_BUFFER
+							</TerminalButton>
+							<TerminalButton
+								variant={activeTab === "lookup" ? "cyber" : "ghost"}
+								size="sm"
+								onClick={() => setActiveTab("lookup")}
+								icon={<Search className="w-3.5 h-3.5" />}
+							>
+								RETRIEVE
+							</TerminalButton>
+						</div>
 					</div>
 				</div>
-			</div>
+			</header>
+
+			{/* Main Workspace Frame */}
+			<main className="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 space-y-6">
+				{error && (
+					<TerminalAlert variant="danger" title="SYSTEM_EXCEPTION" onDismiss={clearError}>
+						{error}
+					</TerminalAlert>
+				)}
+
+				{/* Deployment Confirmation Banner */}
+				{createdResult && (
+					<div className="p-4 bg-emerald-950/40 border border-emerald-500/40 rounded-lg space-y-3 shadow-[0_0_20px_rgba(16,185,129,0.12)] animate-in fade-in duration-150">
+						<div className="flex items-center justify-between">
+							<span className="text-xs text-emerald-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+								<ShieldCheck className="w-4 h-4" /> SNIPPET BUFFER DEPLOYED TO UPSTASH REDIS
+							</span>
+							<button
+								onClick={resetCreatedResult}
+								className="text-neutral-500 hover:text-white text-xs font-mono"
+							>
+								[DISMISS]
+							</button>
+						</div>
+						<div className="flex flex-wrap items-center gap-2 bg-black/80 p-2.5 rounded border border-neutral-800">
+							<code className="text-sm text-emerald-300 font-semibold flex-1">
+								{createdResult.id}
+							</code>
+							<TerminalButton
+								variant="primary"
+								size="sm"
+								onClick={() => handleShareLink(createdResult.id)}
+								icon={copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+							>
+								{copied ? "COPIED_LINK" : "SHARE_LINK"}
+							</TerminalButton>
+							<TerminalButton
+								variant="outline"
+								size="sm"
+								onClick={() => {
+									fetchSnippet(createdResult.id);
+									setActiveTab("lookup");
+								}}
+								icon={<ExternalLink className="w-3.5 h-3.5" />}
+							>
+								VIEW
+							</TerminalButton>
+						</div>
+					</div>
+				)}
+
+				{/* Mobile tab bar */}
+				<div className="flex sm:hidden gap-2 border-b border-neutral-800 pb-2">
+					<TerminalButton
+						className="flex-1"
+						variant={activeTab === "create" ? "primary" : "outline"}
+						size="sm"
+						onClick={() => setActiveTab("create")}
+					>
+						DEPLOY BUFFER
+					</TerminalButton>
+					<TerminalButton
+						className="flex-1"
+						variant={activeTab === "lookup" ? "cyber" : "outline"}
+						size="sm"
+						onClick={() => setActiveTab("lookup")}
+					>
+						FETCH BUFFER
+					</TerminalButton>
+				</div>
+
+				<div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+					{/* Left / Active Tab Panel */}
+					<section className={activeTab === "create" ? "lg:col-span-12" : "lg:col-span-5"}>
+						{activeTab === "create" ? (
+							<TerminalCard title="SECURE_BUFFER_DISPATCHER" variant="glow">
+								<SnippetEditor onSubmit={createSnippet} isLoading={isLoading} />
+							</TerminalCard>
+						) : (
+							<TerminalCard title="SEARCH_TERMINAL_NODE" variant="default">
+								<div className="space-y-4">
+									<SnippetLookup onFetch={fetchSnippet} isLoading={isLoading} />
+									<div className="text-xs text-neutral-500 pt-2 border-t border-neutral-800/80 space-y-1">
+										<p className="font-semibold text-neutral-400 uppercase tracking-wide">
+											DEMO SNIPPET SEEDS:
+										</p>
+										<div className="flex flex-wrap gap-1.5 pt-1">
+											{["demo-ts01", "demo-py02", "demo-burn", "demo-lock"].map((id) => (
+												<button
+													key={id}
+													onClick={() => fetchSnippet(id)}
+													className="text-[11px] px-2 py-0.5 bg-neutral-900 border border-neutral-800 rounded hover:border-emerald-500/50 hover:text-emerald-300 transition-colors"
+												>
+													${id}
+												</button>
+											))}
+										</div>
+									</div>
+								</div>
+							</TerminalCard>
+						)}
+					</section>
+
+					{/* Right / Snippet Viewer Panel */}
+					{activeTab === "lookup" && (
+						<section className="lg:col-span-7">
+							<TerminalCard
+								title={snippet ? `BUFFER_READER :: ${snippet.id}` : "BUFFER_STANDBY"}
+								variant={snippet?.burnAfterRead ? "danger" : "glow"}
+							>
+								{snippet ? (
+									<SnippetViewer
+										snippet={snippet}
+										onUnlock={(pwd) => unlockSnippet(snippet.id, pwd)}
+										onDelete={deleteSnippet}
+										isLoading={isLoading}
+									/>
+								) : (
+									<div className="p-12 text-center text-neutral-600 font-mono text-xs uppercase tracking-widest space-y-2">
+										<div>[ STANDBY FOR INCOMING SNIPPET ID ]</div>
+										<p className="text-neutral-700 text-[11px]">
+											Enter a valid memory node ID above to retrieve and render payload.
+										</p>
+									</div>
+								)}
+							</TerminalCard>
+						</section>
+					)}
+				</div>
+			</main>
+
+			{/* Terminal Footer */}
+			<footer className="border-t border-neutral-800/80 bg-neutral-950 py-3 text-center text-[11px] text-neutral-500 font-mono select-none">
+				<div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+					<div>
+						SYS_STATUS: <span className="text-emerald-400">OPERATIONAL</span> | PROTOCOL:{" "}
+						<span className="text-cyan-400">HTTPS_REST_REDIS</span>
+					</div>
+					<div>ZERO_LOG_ENCRYPTED_EPHEMERAL_STORAGE</div>
+				</div>
+			</footer>
 		</div>
 	);
 }
