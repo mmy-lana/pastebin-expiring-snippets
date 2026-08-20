@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSnippet } from "./hooks/useSnippet";
 import { useClipboard } from "./hooks/useClipboard";
 import { TerminalCard } from "./components/ui/TerminalCard";

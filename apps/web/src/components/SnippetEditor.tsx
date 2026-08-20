@@ -9,10 +9,10 @@ import { TerminalInput } from "./ui/TerminalInput";
 import { TerminalSelect } from "./ui/TerminalSelect";
 import { TerminalTextarea } from "./ui/TerminalTextarea";
 import { TerminalButton } from "./ui/TerminalButton";
-import { Lock, Send, Sparkles, KeyRound, Eye } from "lucide-react";
+import { Lock, Send, KeyRound, Eye } from "lucide-react";
 
 interface SnippetEditorProps {
-	onSubmit: (payload: CreateSnippetInput) => Promise<void>;
+	onSubmit: (payload: CreateSnippetInput) => Promise<unknown>;
 	isLoading?: boolean;
 }
 

@@ -21,8 +21,8 @@ import {
 
 interface SnippetViewerProps {
 	snippet: SnippetResponse;
-	onUnlock: (password: string) => Promise<void>;
-	onDelete: (id: string) => Promise<void>;
+	onUnlock: (password: string) => Promise<unknown>;
+	onDelete: (id: string) => Promise<unknown>;
 	isLoading?: boolean;
 }
 
